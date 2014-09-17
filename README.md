@@ -1,4 +1,4 @@
 IteratorExtras
 ==============
 
-A collection of extra method for Rust Iterators
+A collection of extra methods for Rust Iterators
