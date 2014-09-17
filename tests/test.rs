@@ -40,3 +40,14 @@ fn test_map_pairs() {
     assert_eq!(pairwise_diffs, vec![1i, 3]);
 
 }
+
+#[test]
+fn test_scan1() {
+    let xs = vec![0i, 1, 3, 6, 10];
+    let diffs: Vec<int> = xs.move_iter().scan1(|st, x| {
+        let diff = x - *st;
+        *st = x;
+        Some(diff)
+        }).collect();
+    assert_eq!(diffs, vec![1i, 2, 3, 4]);
+}
