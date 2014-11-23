@@ -89,7 +89,7 @@ pub trait IteratorExtra<A> {
     /// ```rust
     /// use IteratorExtras::IteratorExtra;
     /// let xs = vec![0u, 1, 2, 3, 4, 5];
-    /// let strided: Vec<uint> = xs.move_iter().stride(3).collect();
+    /// let strided: Vec<uint> = xs.into_iter().stride(3).collect();
     /// assert_eq!(strided, vec![0u, 3]);
     /// ```
     ///
@@ -107,7 +107,7 @@ pub trait IteratorExtra<A> {
     /// ```rust
     /// use IteratorExtras::IteratorExtra;
     /// let xs = vec![0i, 1, 5, 8, 10];
-    /// let pairwise_diffs: Vec<int> = xs.move_iter().map_pairs(|[l,r]| r - l).collect();
+    /// let pairwise_diffs: Vec<int> = xs.into_iter().map_pairs(|[l,r]| r - l).collect();
     /// assert_eq!(pairwise_diffs, vec![1i, 3]);
     /// ```
     fn map_pairs<'r, B>(self, f: |[A, ..2]| : 'r -> B) -> MapPairs<'r, A, B, Self> {
@@ -121,7 +121,7 @@ pub trait IteratorExtra<A> {
     /// ```rust
     /// use IteratorExtras::IteratorExtra;
     /// let xs = vec![0i, 1, 3, 6, 10];
-    /// let diffs: Vec<int> = xs.move_iter().scan1(|st, x| {
+    /// let diffs: Vec<int> = xs.into_iter().scan1(|st, x| {
     ///     let diff = x - *st;
     ///     *st = x;
     ///     Some(diff)
