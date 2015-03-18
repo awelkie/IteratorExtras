@@ -1,11 +1,13 @@
-pub struct Stride<A, I> {
+pub struct Stride<I> {
     iter: I,
-    stride: uint,
+    stride: usize,
 }
 
-impl<A, I: Iterator<A>> Iterator<A> for Stride<A, I> {
+impl<I> Iterator for Stride<I> where I: Iterator {
+    type Item = I::Item;
+
     #[inline]
-    fn next(&mut self) -> Option<A> {
+    fn next(&mut self) -> Option<I::Item> {
         let ret = self.iter.next();
         if self.stride > 1 {
             self.iter.nth(self.stride - 2);
@@ -14,7 +16,7 @@ impl<A, I: Iterator<A>> Iterator<A> for Stride<A, I> {
     }
 
     #[inline]
-    fn size_hint(&self) -> (uint, Option<uint>) {
+    fn size_hint(&self) -> (usize, Option<usize>) {
         if self.stride > 0 {
             match self.iter.size_hint() {
                 (lower, None) => (lower / self.stride, None),
@@ -26,12 +28,14 @@ impl<A, I: Iterator<A>> Iterator<A> for Stride<A, I> {
     }
 }
 
-pub struct MapPairs<'a, A, B, It> {
-    iter: It,
-    f: |[A, ..2]|: 'a -> B,
+pub struct MapPairs<B, I, F> where I: Iterator, F: Fn([I::Item; 2]) -> B {
+    iter: I,
+    f: F,
 }
 
-impl<'a, A, B, It: Iterator<A>> Iterator<B> for MapPairs<'a, A, B, It> {
+impl<B, I, F> Iterator for MapPairs<B, I, F> where I: Iterator , F: Fn([I::Item; 2]) -> B {
+    type Item = B;
+
     #[inline]
     fn next(&mut self) -> Option<B> {
         let a = self.iter.next();
@@ -43,18 +47,21 @@ impl<'a, A, B, It: Iterator<A>> Iterator<B> for MapPairs<'a, A, B, It> {
     }
 
     #[inline]
-    fn size_hint(&self) -> (uint, Option<uint>) {
+    fn size_hint(&self) -> (usize, Option<usize>) {
         self.iter.size_hint()
     }
 }
 
-pub struct Scan1<'a, A, B, T> {
-    iter: T,
-    f: |&mut A, A|: 'a -> Option<B>,
-    state: Option<A>,
+pub struct Scan1<B, I, F> where F: FnMut(&mut I::Item, I::Item) -> Option<B>, I: Iterator {
+    iter: I,
+    f: F,
+    state: Option<I::Item>,
 }
 
-impl<'a, A, B, T: Iterator<A>> Iterator<B> for Scan1<'a, A, B, T> {
+impl<B, I, F> Iterator for Scan1<B, I, F> where F: FnMut(&mut I::Item, I::Item) -> Option<B>,
+                                                I: Iterator {
+    type Item = B;
+
     #[inline]
     fn next(&mut self) -> Option<B> {
 
@@ -70,13 +77,13 @@ impl<'a, A, B, T: Iterator<A>> Iterator<B> for Scan1<'a, A, B, T> {
     }
 
     #[inline]
-    fn size_hint(&self) -> (uint, Option<uint>) {
+    fn size_hint(&self) -> (usize, Option<usize>) {
         let (_, upper) = self.iter.size_hint();
         (0, upper) // can't know a lower bound, due to the scan function
     }
 }
 
-pub trait IteratorExtra<A> {
+pub trait IteratorExtra: Iterator + Sized {
 
     /// This will traverse the iterator `stride` elements at a time.
     ///
@@ -89,11 +96,11 @@ pub trait IteratorExtra<A> {
     /// ```rust
     /// use IteratorExtras::IteratorExtra;
     /// let xs = vec![0u, 1, 2, 3, 4, 5];
-    /// let strided: Vec<uint> = xs.into_iter().stride(3).collect();
+    /// let strided: Vec<usize> = xs.into_iter().stride(3).collect();
     /// assert_eq!(strided, vec![0u, 3]);
     /// ```
     ///
-    fn stride(self, stride: uint) -> Stride<A, Self> {
+    fn stride(self, stride: usize) -> Stride<Self> {
         Stride { iter: self, stride: stride }
     }
 
@@ -110,7 +117,7 @@ pub trait IteratorExtra<A> {
     /// let pairwise_diffs: Vec<int> = xs.into_iter().map_pairs(|[l,r]| r - l).collect();
     /// assert_eq!(pairwise_diffs, vec![1i, 3]);
     /// ```
-    fn map_pairs<'r, B>(self, f: |[A, ..2]| : 'r -> B) -> MapPairs<'r, A, B, Self> {
+    fn map_pairs<B, F>(self, f: F) -> MapPairs<B, Self, F> where F: Fn([Self::Item; 2]) -> B {
         MapPairs { iter: self, f: f }
     }
 
@@ -128,9 +135,9 @@ pub trait IteratorExtra<A> {
     ///     }).collect();
     /// assert_eq!(diffs, vec![1i, 2, 3, 4]);
     /// ```
-    fn scan1<'r, B>(self, f: |&mut A, A|: 'r -> Option<B>) -> Scan1<'r, A, B, Self> {
+    fn scan1<B, F>(self, f: F) -> Scan1<B, Self, F> where F: FnMut(&mut Self::Item, Self::Item) -> Option<B> {
         Scan1 { iter: self, f: f, state: None }
     }
 }
 
-impl<A, I: Iterator<A>> IteratorExtra<A> for I { }
+impl<I> IteratorExtra for I where I: Iterator { }
